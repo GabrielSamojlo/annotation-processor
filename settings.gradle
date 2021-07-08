@@ -1,0 +1,4 @@
+rootProject.name = "AnnotationProcessing"
+include ':app'
+include ':mylibrary'
+include ':myproc'

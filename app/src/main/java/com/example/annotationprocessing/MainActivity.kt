@@ -2,7 +2,6 @@ package com.example.annotationprocessing
 
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
-import java.lang.String
 
 class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -11,7 +10,7 @@ class MainActivity : AppCompatActivity() {
 
         val userDto = UserDto(
             id = 10,
-            email = String("gabriel.samojlo@netguru.com"),
+            email = "gabriel.samojlo@netguru.com",
             accountBalance = 10.0
         )
     }

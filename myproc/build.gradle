@@ -1,27 +1,19 @@
 plugins {
-    id 'java-library'
-    id 'kotlin'
-    id 'kotlin-kapt'
     id 'org.jetbrains.kotlin.plugin.serialization' version "$kotlin_version"
+    id 'org.jetbrains.kotlin.jvm'
 }
 
-java {
-    sourceCompatibility = JavaVersion.VERSION_1_7
-    targetCompatibility = JavaVersion.VERSION_1_7
+repositories {
+    mavenCentral()
 }
 
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
 
-    implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
-    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
-
-    //noinspection AnnotationProcessorOnCompilePath
-    implementation "com.google.auto.service:auto-service:1.0-rc4"
-    implementation 'com.squareup:kotlinpoet:1.4.4'
-    implementation "org.jetbrains.kotlinx:kotlinx-serialization-json:1.2.2"
-
-    kapt "com.google.auto.service:auto-service:1.0-rc4"
+    implementation 'com.squareup:kotlinpoet:1.12.0'
+    implementation("com.squareup:kotlinpoet-ksp:1.12.0")
+    implementation "org.jetbrains.kotlinx:kotlinx-serialization-json:1.5.1"
+    implementation 'com.google.devtools.ksp:symbol-processing-api:1.8.21-1.0.11'
 
     compileOnly(project(':mylibrary'))
 

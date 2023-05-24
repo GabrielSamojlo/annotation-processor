@@ -1,8 +1,8 @@
 plugins {
     id 'com.android.application'
     id 'kotlin-android'
-    id 'kotlin-kapt'
     id 'org.jetbrains.kotlin.plugin.serialization' version "$kotlin_version"
+    id 'com.google.devtools.ksp' version '1.8.21-1.0.11'
 }
 
 android {
@@ -32,6 +32,12 @@ android {
     kotlinOptions {
         jvmTarget = '1.8'
     }
+    kotlin {
+        sourceSets {
+            main.kotlin.srcDirs += 'build/generated/ksp/main/kotlin'
+            test.kotlin.srcDirs += 'build/generated/ksp/test/kotlin'
+        }
+    }
 }
 
 dependencies {
@@ -48,6 +54,6 @@ dependencies {
     implementation "org.jetbrains.kotlinx:kotlinx-serialization-json:1.2.2"
 
     implementation(project(':mylibrary'))
-    kapt(project(':myproc'))
+    ksp(project(':myproc'))
 
 }

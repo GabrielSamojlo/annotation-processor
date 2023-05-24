@@ -1,86 +1,77 @@
 package com.example.myproc
 
-import com.example.mylibrary.AutoDto
-import com.google.auto.service.AutoService
+import com.google.devtools.ksp.processing.CodeGenerator
+import com.google.devtools.ksp.processing.Dependencies
+import com.google.devtools.ksp.processing.Resolver
+import com.google.devtools.ksp.processing.SymbolProcessor
+import com.google.devtools.ksp.symbol.KSAnnotated
+import com.google.devtools.ksp.symbol.KSClassDeclaration
+import com.google.devtools.ksp.validate
 import com.squareup.kotlinpoet.*
+import com.squareup.kotlinpoet.ksp.toTypeName
+import com.squareup.kotlinpoet.ksp.writeTo
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-import java.io.File
-import javax.annotation.processing.*
-import javax.lang.model.SourceVersion
-import javax.lang.model.element.Element
-import javax.lang.model.element.ElementKind
-import javax.lang.model.element.TypeElement
 
-@AutoService(Processor::class) // Registering the service
-@SupportedSourceVersion(SourceVersion.RELEASE_8) // to support Java 8
-class MyProcessor : AbstractProcessor() {
+@OptIn(DelicateKotlinPoetApi::class)
+class MyProcessor(private val codeGenerator: CodeGenerator) : SymbolProcessor {
 
-    override fun process(
-        annotations: MutableSet<out TypeElement>?,
-        roundEnv: RoundEnvironment?
-    ): Boolean {
-        val generatedDir = processingEnv.options["kapt.kotlin.generated"] ?: return false
+    override fun process(resolver: Resolver): List<KSAnnotated> {
+        val symbols = resolver.getSymbolsWithAnnotation(
+            "com.example.mylibrary.AutoDto"
+        )
 
-        roundEnv
-            ?.getElementsAnnotatedWith(AutoDto::class.java)
-            ?.mapNotNull { generateFile(it, generatedDir) }
+        symbols
+            .filter { it.validate() }
+            .filterIsInstance<KSClassDeclaration>()
+            .forEach { generateFile(it, codeGenerator) }
 
-        return true
+        return symbols.filter { !it.validate() }.toList()
     }
 
-    private fun generateFile(element: Element, directory: String) {
-        val classFields = element.enclosedElements.filter { it.kind == ElementKind.FIELD }
-        val packageName = processingEnv.elementUtils.getPackageOf(element).toString()
-        val fileName = "${element.simpleName}Dto"
+    private fun generateFile(classDeclaration: KSClassDeclaration, codeGenerator: CodeGenerator) {
+        val fileName = "${classDeclaration.simpleName.asString()}Dto"
+        val packageName = classDeclaration.packageName.asString()
 
         val classBuilder = TypeSpec.classBuilder(fileName)
             .addModifiers(KModifier.DATA)
             .addAnnotation(Serializable::class.java)
             .primaryConstructor(
-                buildConstructor(classFields)
+                buildConstructor(classDeclaration)
             )
             .addProperties(
-                buildProperties(classFields)
+                buildProperties(classDeclaration)
             )
 
         FileSpec.builder(packageName, fileName)
             .addType(classBuilder.build()).build()
             .writeTo(
-                File(directory)
+                codeGenerator,
+                Dependencies(true, classDeclaration.containingFile!!)
             )
     }
 
-    private fun buildConstructor(fields: List<Element>): FunSpec {
+    private fun buildConstructor(classDeclaration: KSClassDeclaration): FunSpec {
         val builder = FunSpec.constructorBuilder()
 
-        fields.forEach {
-            builder.addParameter(name = it.simpleName.toString(), type = it.asType().asTypeName())
+        classDeclaration.primaryConstructor?.parameters?.forEach {
+            builder.addParameter(name = it.name?.asString().orEmpty(), type = it.type.toTypeName())
         }
 
         return builder.build()
     }
 
-    private fun buildProperties(fields: List<Element>): List<PropertySpec> {
-        return fields.map {
+    private fun buildProperties(classDeclaration: KSClassDeclaration): List<PropertySpec> {
+        return classDeclaration.getAllProperties().map {
             PropertySpec
-                .builder(name = it.simpleName.toString(), type = it.asType().asTypeName())
-                .initializer(it.simpleName.toString())
+                .builder(name = it.simpleName.asString(), type = it.type.toTypeName())
+                .initializer(it.simpleName.asString())
                 .addAnnotation(
                     AnnotationSpec
                         .builder(type = SerialName::class)
-                        .addMember(format = "%L = %S", "value", it.simpleName.toString())
+                        .addMember(format = "%L = %S", "value", it.simpleName.asString())
                         .build()
                 ).build()
-        }
+        }.toList()
     }
-
-    // Declaring supported annotations
-    override fun getSupportedAnnotationTypes(): MutableSet<String> = mutableSetOf(
-        AutoDto::class.java.name
-    )
-
-    // Supported Java versions
-    override fun getSupportedSourceVersion(): SourceVersion = SourceVersion.latest()
-
 }
